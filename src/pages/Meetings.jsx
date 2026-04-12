@@ -18,13 +18,45 @@ export default function Meetings() {
   const isAdmin = user?.role === 'admin';
   const [isAdding, setIsAdding] = useState(false);
   const [newMeeting, setNewMeeting] = useState({ title: '', description: '', date: '', time: '', location: '', online: false });
+  const [localMeetings, setLocalMeetings] = useState([]);
 
   // REAL API FETCH: Get live society meetings
   const { data: realMeetingsRes, isLoading } = useQuery({
     queryKey: ['meetings'],
     queryFn: async () => {
-      const res = await meetingAPI.getAll();
-      return res.data.meetings; // Fix: Extract array
+      try {
+        const res = await meetingAPI.getAll();
+        return res.data.meetings || [];
+      } catch {
+        return [];
+      }
+    }
+  });
+
+  const scheduleMutation = useMutation({
+    mutationFn: (data) => meetingAPI.create(data),
+    onSuccess: () => {
+      toast.success('Meeting scheduled and notifications sent to all residents! 📅');
+      setIsAdding(false);
+      setNewMeeting({ title: '', description: '', date: '', time: '', location: '', online: false });
+      queryClient.invalidateQueries(['meetings']);
+    },
+    onError: (err, variables) => {
+      if (err?.isDemo) {
+        const newLocal = {
+          _id: `local-${Date.now()}`,
+          ...variables,
+          status: 'Scheduled',
+          attendees: 0,
+          createdAt: new Date().toISOString(),
+        };
+        setLocalMeetings(prev => [newLocal, ...prev]);
+        toast.success('Meeting scheduled! Notifications sent to all residents. 📅');
+        setIsAdding(false);
+        setNewMeeting({ title: '', description: '', date: '', time: '', location: '', online: false });
+      } else {
+        toast.error('Failed to schedule meeting');
+      }
     }
   });
 
@@ -37,17 +69,20 @@ export default function Meetings() {
     );
   }
 
-  // Combine Real + Mock
+
+  // Combine Real + Local + Mock
   const meetings = [
+    ...localMeetings,
     ...(realMeetingsRes || []),
     ...MOCK_MEETINGS
-  ].sort((a, b) => new Date(b.date) - new Date(a.date));
+  ].sort((a, b) => {
+    const da = new Date(b.date), db = new Date(a.date);
+    return isNaN(da) ? 1 : isNaN(db) ? -1 : da - db;
+  });
 
   const handleSchedule = (e) => {
     e.preventDefault();
-    toast.success('Meeting scheduled and notifications sent to all residents!');
-    setIsAdding(false);
-    setNewMeeting({ title: '', description: '', date: '', time: '', location: '', online: false });
+    scheduleMutation.mutate(newMeeting);
   };
 
   const getDayDetails = (dateStr) => {

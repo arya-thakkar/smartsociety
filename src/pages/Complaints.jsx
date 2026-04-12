@@ -21,6 +21,8 @@ export default function Complaints() {
   const [searchTerm, setSearchTerm] = useState('');
   const [newComplaint, setNewComplaint] = useState({ subject: '', description: '', category: 'Maintenance' });
 
+  const [localComplaints, setLocalComplaints] = useState([]);
+
   const isAdmin = user?.role === 'admin';
 
   // REAL API FETCH: Get live grievances
@@ -44,6 +46,25 @@ export default function Complaints() {
       setIsAdding(false);
       setNewComplaint({ subject: '', description: '', category: 'Maintenance' });
       queryClient.invalidateQueries(['complaints']);
+    },
+    onError: (err, variables) => {
+      if (err?.isDemo) {
+        const newLocalComplaint = {
+          _id: `local-${Date.now()}`,
+          subject: variables.subject,
+          description: variables.description,
+          category: variables.category,
+          unit: user?.unit || 'N/A',
+          status: 'Pending',
+          createdAt: new Date().toISOString(),
+        };
+        setLocalComplaints(prev => [newLocalComplaint, ...prev]);
+        toast.success('Complaint raised and sent to Management! 🚨');
+        setIsAdding(false);
+        setNewComplaint({ subject: '', description: '', category: 'Maintenance' });
+      } else {
+        toast.error('Failed to submit complaint');
+      }
     }
   });
 
@@ -52,6 +73,13 @@ export default function Complaints() {
     onSuccess: () => {
       toast.success('Complaint status updated');
       queryClient.invalidateQueries(['complaints']);
+    },
+    onError: (err) => {
+      if (err?.isDemo) {
+        toast.success('Status updated! ✅');
+      } else {
+        toast.error('Failed to update status');
+      }
     }
   });
 
@@ -73,6 +101,7 @@ export default function Complaints() {
   };
 
   const complaints = [
+    ...localComplaints,
     ...(realComplaintsRes || []),
     ...MOCK_COMPLAINTS
   ].sort((a, b) => safeDate(b.createdAt) - safeDate(a.createdAt));

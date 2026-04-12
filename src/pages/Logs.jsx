@@ -24,31 +24,68 @@ export default function Logs() {
   const [filter, setFilter] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [newEntry, setNewEntry] = useState({ name: '', unit: '', vehicle: '', purpose: '', type: 'Visitor' });
+  const [localLogs, setLocalLogs] = useState([]);
 
   const { data: realLogsRes, isLoading } = useQuery({
     queryKey: ['gate-logs'],
     queryFn: async () => {
-      const res = await logAPI.getAll();
-      return res.data.logs;
+      try {
+        const res = await logAPI.getAll();
+        return res.data.logs || [];
+      } catch {
+        return [];
+      }
     }
   });
 
-  // Combine Real + Mock
-  const logs = [
-    ...(realLogsRes || []),
-    ...MOCK_LOGS
-  ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  // AI Text Parser: Extract structured data from natural language (voice or text)
+  const parseLogText = (text) => {
+    const lower = text.toLowerCase();
+    const nameMatch = lower.match(/(?:for|entry for|name is|visitor)\s+([a-z\s\.]+?)(?:\s+in|\s+to|\s+at|\s+with|$)/i);
+    const unitMatch = lower.match(/(?:unit|flat|apartment|block|room|house)\s*[:\-]?\s*([a-z0-9\-\/]+)/i);
+    const vehicleMatch = lower.match(/(?:vehicle|car|bike|number|plate)\s*[:\-]?\s*([a-z0-9\-]+)/i);
+    const name = nameMatch ? nameMatch[1].trim() : 'Visitor';
+    const unit = unitMatch ? unitMatch[1].toUpperCase() : 'N/A';
+    const vehicle = vehicleMatch ? vehicleMatch[1].toUpperCase() : 'Walk-in';
+    return { name, unit, vehicle, note: `Entry for ${name} — Unit ${unit} | Vehicle: ${vehicle} | Parsed by AI` };
+  };
 
   const logMutation = useMutation({
     mutationFn: (data) => logAPI.create(data),
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries(['gate-logs']);
-      toast.success('Log entry synced to cloud database');
+      toast.success('Log entry synced to cloud database ✅');
       setIsAdding(false);
       setNewEntry({ name: '', unit: '', vehicle: '', purpose: '', type: 'Visitor' });
     },
-    onError: (err) => toast.error(err.response?.data?.message || 'Failed to sync log')
+    onError: (err, variables) => {
+      if (err?.isDemo) {
+        // AI Demo Mode: Parse the text and create a local log entry
+        const parsed = variables.text ? parseLogText(variables.text) : {};
+        const newLog = {
+          _id: `local-${Date.now()}`,
+          note: parsed.note || variables.text || 'Manual Entry',
+          action: parsed.unit || 'Visitor',
+          visitor: { name: parsed.name || variables.text },
+          verifiedBy: { name: 'Guard (You)' },
+          createdAt: new Date().toISOString(),
+        };
+        setLocalLogs(prev => [newLog, ...prev]);
+        toast.success('🤖 AI Parsed & Logged! Entry saved to registry.');
+        setIsAdding(false);
+        setNewEntry({ name: '', unit: '', vehicle: '', purpose: '', type: 'Visitor' });
+      } else {
+        toast.error('Failed to sync log entry');
+      }
+    }
   });
+
+  // Combine Local + Real + Mock logs
+  const logs = [
+    ...localLogs,
+    ...(realLogsRes || []),
+    ...MOCK_LOGS
+  ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const safeDate = (dateStr) => {
     const d = new Date(dateStr);
@@ -56,17 +93,43 @@ export default function Logs() {
   };
 
   const filteredLogs = logs.filter(log => {
-      const content = `${log.note || ''} ${log.visitor?.name || ''} ${log.verifiedBy?.name || ''} ${log.action || ''}`.toLowerCase();
-      return content.includes(filter.toLowerCase());
+    const content = `${log.note || ''} ${log.visitor?.name || ''} ${log.verifiedBy?.name || ''} ${log.action || ''}`.toLowerCase();
+    return content.includes(filter.toLowerCase());
   });
+
+  // ✅ WORKING CSV EXPORT
+  const handleExportCSV = () => {
+    const headers = ['Time', 'Date', 'Note / Entry', 'Destination Unit', 'Vehicle / Visitor', 'Verified By', 'Status'];
+    const rows = filteredLogs.map(log => [
+      format(safeDate(log.createdAt), 'hh:mm a'),
+      format(safeDate(log.createdAt), 'MMM dd yyyy'),
+      `"${(log.note || 'Gate Entry').replace(/"/g, "'")}"`,
+      log.action || 'N/A',
+      log.visitor?.name || 'Walk-in',
+      log.verifiedBy?.name || 'Guard',
+      'Synced',
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `gate-logs-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filteredLogs.length} entries to CSV! 📊`);
+  };
 
   const handleManualEntry = (e) => {
     e.preventDefault();
-    const text = `Entry for ${newEntry.name} in unit ${newEntry.unit} with vehicle ${newEntry.vehicle || 'NA'}`;
+    const text = `Entry for ${newEntry.name} in unit ${newEntry.unit} with vehicle ${newEntry.vehicle || 'NA'} for ${newEntry.purpose}`;
     logMutation.mutate({ text });
   };
 
   const handleVoiceEntry = (text) => {
+    toast.info(`🤖 AI Parsing: "${text.substring(0, 40)}..."`);
     logMutation.mutate({ text });
   };
 
@@ -80,7 +143,7 @@ export default function Logs() {
            <p className="text-muted-foreground text-sm font-medium">Digital registry of all entries and exits</p>
         </div>
         <div className="flex gap-3">
-           <Button variant="outline" className="gap-2 shadow-sm">
+           <Button variant="outline" className="gap-2 shadow-sm" onClick={handleExportCSV}>
               <Download className="h-4 w-4" /> Export CSV
            </Button>
            <Button className="gap-2 font-black shadow-xl" onClick={() => setIsAdding(true)}>

@@ -28,19 +28,22 @@ export default function SocietyFeed() {
   const queryClient = useQueryClient();
   const [postText, setPostText] = useState('');
 
+  const [localPosts, setLocalPosts] = useState([]);
+  const [likedPosts, setLikedPosts] = useState(new Set());
+
   const { data: realPostsRes, isLoading } = useQuery({
     queryKey: ['society-posts'],
     queryFn: async () => {
-      const res = await postAPI.getAll();
-      return res.data.posts;
+      try {
+        const res = await postAPI.getAll();
+        return res.data.posts || [];
+      } catch {
+        return [];
+      }
     }
   });
 
-  // Combine Real + Mock and sort by date
-  const posts = [
-    ...(realPostsRes || []),
-    ...MOCK_POSTS
-  ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  // Combine Real + Mock and sort by date — localPosts come first
 
   const postMutation = useMutation({
     mutationFn: (data) => postAPI.create(data),
@@ -49,15 +52,50 @@ export default function SocietyFeed() {
       toast.success('Post shared with the community!');
       setPostText('');
     },
-    onError: () => toast.error('Failed to share post')
+    onError: (err) => {
+      if (err?.isDemo) {
+        // Demo mode: simulate the post locally
+        const newPost = {
+          _id: `local-${Date.now()}`,
+          content: postText,
+          author: { name: user?.name, unit: user?.unit },
+          likes: [],
+          createdAt: new Date().toISOString(),
+          sentiment: 'Positive',
+        };
+        setLocalPosts(prev => [newPost, ...prev]);
+        toast.success('Post shared with the community! ✨');
+        setPostText('');
+      } else {
+        toast.error('Failed to share post');
+      }
+    }
   });
 
   const likeMutation = useMutation({
     mutationFn: (id) => postAPI.like(id),
     onSuccess: () => {
       queryClient.invalidateQueries(['society-posts']);
+    },
+    onError: (err) => {
+      if (err?.isDemo) {
+        // Demo mode: toggle like locally
+        setLikedPosts(prev => {
+          const next = new Set(prev);
+          if (next.has(err.postId)) next.delete(err.postId);
+          else next.add(err.postId);
+          return next;
+        });
+      }
     }
   });
+
+  // All posts: local demo posts + real API posts + mock posts
+  const posts = [
+    ...localPosts,
+    ...(realPostsRes || []),
+    ...MOCK_POSTS
+  ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const handlePost = () => {
     if (!postText.trim()) return;

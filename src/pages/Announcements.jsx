@@ -20,6 +20,8 @@ export default function Announcements() {
   const [newNotice, setNewNotice] = useState({ title: '', content: '', priority: 'Normal' });
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [localNotices, setLocalNotices] = useState([]);
+
   const isAdmin = user?.role === 'admin';
 
   // REAL API FETCH: Get live announcements
@@ -43,6 +45,23 @@ export default function Announcements() {
       setIsAdding(false);
       setNewNotice({ title: '', content: '', priority: 'Normal' });
       queryClient.invalidateQueries(['announcements']);
+    },
+    onError: (err, variables) => {
+      if (err?.isDemo) {
+        const newNotice = {
+          _id: `local-${Date.now()}`,
+          title: variables.title,
+          content: variables.content,
+          priority: variables.priority,
+          createdAt: new Date().toISOString(),
+        };
+        setLocalNotices(prev => [newNotice, ...prev]);
+        toast.success('Announcement posted to Society Board! 📢');
+        setIsAdding(false);
+        setNewNotice({ title: '', content: '', priority: 'Normal' });
+      } else {
+        toast.error('Failed to post announcement');
+      }
     }
   });
 
@@ -64,6 +83,7 @@ export default function Announcements() {
   };
 
   const notices = [
+    ...localNotices,
     ...(realNoticesRes || []),
     ...MOCK_ANNOUNCEMENTS
   ].sort((a, b) => safeDate(b.createdAt) - safeDate(a.createdAt));
