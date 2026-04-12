@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { MessageSquare, Plus, CheckCircle2, Clock, AlertTriangle, Send, History, Search, User, X, Mic } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { complaintAPI } from '../api';
+import { complaintAPI, isDemoMode } from '../api';
 import { VoiceInput } from '../components/ui/VoiceInput';
 import { MOCK_COMPLAINTS } from '../data/mockData';
 
@@ -40,7 +40,10 @@ export default function Complaints() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => complaintAPI.create(data),
+    mutationFn: async (data) => {
+      if (isDemoMode()) throw { isDemo: true };
+      return complaintAPI.create(data);
+    },
     onSuccess: () => {
       toast.success('Complaint filed successfully with Management!');
       setIsAdding(false);
@@ -63,13 +66,16 @@ export default function Complaints() {
         setIsAdding(false);
         setNewComplaint({ subject: '', description: '', category: 'Maintenance' });
       } else {
-        toast.error('Failed to submit complaint');
+        toast.error('Failed to submit complaint. Please try again.');
       }
     }
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }) => complaintAPI.updateStatus(id, status),
+    mutationFn: async ({ id, status }) => {
+      if (isDemoMode()) throw { isDemo: true };
+      return complaintAPI.updateStatus(id, status);
+    },
     onSuccess: () => {
       toast.success('Complaint status updated');
       queryClient.invalidateQueries(['complaints']);

@@ -7,23 +7,25 @@ const api = axios.create({
   },
 });
 
-// Add Interceptor for Token & Demo Mode handling
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token') || JSON.parse(localStorage.getItem('auth_store') || '{}').token;
-  
-  // AI Feature: Demo Mode Detection
-  // If we're using a mock token, we don't want to hit the real production server 
-  // and get 401/404 errors. We short-circuit to let the UI's catch-blocks handle it.
-  if (token === 'mock-token') {
-    return Promise.reject({
-      message: 'Demo Mode: Bypassing real network call',
-      isDemo: true
-    });
+// Helper: check if the current session is using the demo mock token
+export const isDemoMode = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('auth_store') || '{}');
+    return stored.token === 'mock-token';
+  } catch {
+    return false;
   }
+};
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+// Add Authorization header for real users only
+api.interceptors.request.use((config) => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('auth_store') || '{}');
+    const token = stored.token;
+    if (token && token !== 'mock-token') {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch {}
   return config;
 });
 

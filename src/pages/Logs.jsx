@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { logAPI } from '../api';
+import { logAPI, isDemoMode } from '../api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
@@ -51,7 +51,10 @@ export default function Logs() {
   };
 
   const logMutation = useMutation({
-    mutationFn: (data) => logAPI.create(data),
+    mutationFn: async (data) => {
+      if (isDemoMode()) throw { isDemo: true };
+      return logAPI.create(data);
+    },
     onSuccess: (res) => {
       queryClient.invalidateQueries(['gate-logs']);
       toast.success('Log entry synced to cloud database ✅');

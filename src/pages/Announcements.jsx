@@ -9,7 +9,7 @@ import { Badge } from '../components/ui/badge';
 import { Bell, Plus, Megaphone, Calendar, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { announcementAPI } from '../api';
+import { announcementAPI, isDemoMode } from '../api';
 
 import { MOCK_ANNOUNCEMENTS } from '../data/mockData';
 
@@ -39,7 +39,10 @@ export default function Announcements() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => announcementAPI.create(data),
+    mutationFn: async (data) => {
+      if (isDemoMode()) throw { isDemo: true };
+      return announcementAPI.create(data);
+    },
     onSuccess: () => {
       toast.success('Announcement posted!');
       setIsAdding(false);

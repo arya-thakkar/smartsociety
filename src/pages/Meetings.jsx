@@ -9,7 +9,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Calendar, Clock, MapPin, Users, Plus, ChevronRight, Video, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { meetingAPI } from '../api';
+import { meetingAPI, isDemoMode } from '../api';
 import { MOCK_MEETINGS } from '../data/mockData';
 
 export default function Meetings() {
@@ -34,7 +34,10 @@ export default function Meetings() {
   });
 
   const scheduleMutation = useMutation({
-    mutationFn: (data) => meetingAPI.create(data),
+    mutationFn: async (data) => {
+      if (isDemoMode()) throw { isDemo: true };
+      return meetingAPI.create(data);
+    },
     onSuccess: () => {
       toast.success('Meeting scheduled and notifications sent to all residents! 📅');
       setIsAdding(false);

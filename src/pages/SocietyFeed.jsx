@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { postAPI } from '../api';
+import { postAPI, isDemoMode } from '../api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
@@ -46,7 +46,10 @@ export default function SocietyFeed() {
   // Combine Real + Mock and sort by date — localPosts come first
 
   const postMutation = useMutation({
-    mutationFn: (data) => postAPI.create(data),
+    mutationFn: async (data) => {
+      if (isDemoMode()) throw { isDemo: true };
+      return postAPI.create(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['society-posts']);
       toast.success('Post shared with the community!');
@@ -73,7 +76,10 @@ export default function SocietyFeed() {
   });
 
   const likeMutation = useMutation({
-    mutationFn: (id) => postAPI.like(id),
+    mutationFn: async (id) => {
+      if (isDemoMode()) throw { isDemo: true, postId: id };
+      return postAPI.like(id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['society-posts']);
     },
