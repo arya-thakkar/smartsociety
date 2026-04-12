@@ -27,27 +27,15 @@ export default function Complaints() {
   const { data: realComplaintsRes, isLoading } = useQuery({
     queryKey: ['complaints'],
     queryFn: async () => {
-      const res = await complaintAPI.getAll();
-      return res.data.complaints; // Fix: Extract the array
+      try {
+        const res = await complaintAPI.getAll();
+        return res.data.complaints || [];
+      } catch (err) {
+        console.error("Complaints API failed, falling back to mock data", err);
+        return [];
+      }
     }
   });
-
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-6 max-w-5xl mx-auto">
-        <div className="h-10 w-64 bg-muted animate-pulse rounded-lg" />
-        {[1, 2, 3].map(i => (
-          <Card key={i} className="h-32 bg-muted animate-pulse border-none rounded-2xl" />
-        ))}
-      </div>
-    );
-  }
-
-  // Combine Real + Mock
-  const complaints = [
-    ...(realComplaintsRes || []),
-    ...MOCK_COMPLAINTS
-  ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const createMutation = useMutation({
     mutationFn: (data) => complaintAPI.create(data),
@@ -66,6 +54,28 @@ export default function Complaints() {
       queryClient.invalidateQueries(['complaints']);
     }
   });
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6 max-w-5xl mx-auto">
+        <div className="h-10 w-64 bg-muted animate-pulse rounded-lg" />
+        {[1, 2, 3].map(i => (
+          <Card key={i} className="h-32 bg-muted animate-pulse border-none rounded-2xl" />
+        ))}
+      </div>
+    );
+  }
+
+  // Combine Real + Mock
+  const safeDate = (dateStr) => {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+
+  const complaints = [
+    ...(realComplaintsRes || []),
+    ...MOCK_COMPLAINTS
+  ].sort((a, b) => safeDate(b.createdAt) - safeDate(a.createdAt));
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -179,7 +189,7 @@ export default function Complaints() {
                           <h3 className="font-extrabold text-lg leading-tight">{item.subject}</h3>
                           <div className="flex items-center gap-4 mt-1 text-[10px] text-muted-foreground font-black uppercase tracking-widest">
                              <span className="flex items-center gap-1"><User className="h-3 w-3" /> Unit {item.unit}</span>
-                             <span className="flex items-center gap-1"><History className="h-3 w-3" /> {new Date(item.createdAt).toLocaleDateString()}</span>
+                             <span className="flex items-center gap-1"><History className="h-3 w-3" /> {safeDate(item.createdAt).toLocaleDateString()}</span>
                              <span className="text-red-500">{item.category}</span>
                           </div>
                        </div>

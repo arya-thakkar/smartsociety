@@ -9,7 +9,8 @@ import { Textarea } from '../components/ui/textarea';
 import { Calendar, Clock, MapPin, Users, Plus, ChevronRight, Video, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../api';
+import { meetingAPI } from '../api';
+import { MOCK_MEETINGS } from '../data/mockData';
 
 export default function Meetings() {
   const { user } = useAuthStore();
@@ -18,50 +19,29 @@ export default function Meetings() {
   const [isAdding, setIsAdding] = useState(false);
   const [newMeeting, setNewMeeting] = useState({ title: '', description: '', date: '', time: '', location: '', online: false });
 
-  // Fetch Meetings
-  const { data: meetings, isLoading } = useQuery({
+  // REAL API FETCH: Get live society meetings
+  const { data: realMeetingsRes, isLoading } = useQuery({
     queryKey: ['meetings'],
     queryFn: async () => {
-      try {
-        const res = await api.get('/meetings');
-        return res.data;
-      } catch (err) {
-        return [
-          { 
-            _id: 'm1', 
-            title: 'Q4 Budget Planning', 
-            description: 'Discussing the new solar panel installation and annual maintenance budget.',
-            date: '2026-04-15',
-            time: '07:00 PM',
-            location: 'Clubhouse Hall A',
-            attendees: 45,
-            online: true,
-            status: 'Upcoming'
-          },
-          { 
-            _id: 'm2', 
-            title: 'Security Vendor Review', 
-            description: 'Reviewing the performance of the new security agency "ShieldGuard".',
-            date: '2026-04-10',
-            time: '08:30 PM',
-            location: 'Meeting Room 2',
-            attendees: 12,
-            online: false,
-            status: 'Completed'
-          }
-        ];
-      }
+      const res = await meetingAPI.getAll();
+      return res.data.meetings; // Fix: Extract array
     }
   });
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+      <div className="p-6 space-y-6 max-w-5xl mx-auto flex flex-col items-center justify-center py-24">
         <Calendar className="h-12 w-12 text-indigo-300 mb-4 animate-bounce" />
-        <p className="text-xl font-black text-indigo-100 tracking-widest uppercase">Syncing Council Agenda...</p>
+        <p className="text-xl font-black text-indigo-200 tracking-widest uppercase animate-pulse">Syncing Council Agenda...</p>
       </div>
     );
   }
+
+  // Combine Real + Mock
+  const meetings = [
+    ...(realMeetingsRes || []),
+    ...MOCK_MEETINGS
+  ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const handleSchedule = (e) => {
     e.preventDefault();

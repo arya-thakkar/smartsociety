@@ -23,12 +23,24 @@ export default function SocietySetup() {
   const createMutation = useMutation({
     mutationFn: (data) => societyAPI.create(data),
     onSuccess: (res) => {
-      const { society, user: updatedUser } = res.data;
-      toast.success(`Society ${society.name} created!`);
-      // Update local storage and store with real data from backend
-      updateUser(updatedUser);
-      setSociety(society._id, society.name, society.inviteCode);
-      navigate(`/dashboard/admin`);
+      // Backend returns { success: true, society: {...}, user: {...} } or { data: { society, user } }
+      const data = res.data.data || res.data;
+      const { society, user: updatedUser } = data;
+      
+      if (society) {
+        setSociety(society._id, society.name, society.inviteCode);
+        toast.success(`Society ${society.name} created!`);
+      }
+
+      // Merge with existing user if backend returned partial data
+      if (updatedUser) {
+        updateUser({ ...user, ...updatedUser });
+        navigate(`/dashboard/${updatedUser.role || 'admin'}`);
+      } else {
+        // Fallback: If backend didn't return user, manually update role to admin and use current user
+        updateUser({ ...user, role: 'admin' });
+        navigate(`/dashboard/admin`);
+      }
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || 'Failed to create society');
@@ -38,12 +50,21 @@ export default function SocietySetup() {
   const joinMutation = useMutation({
     mutationFn: (code) => societyAPI.join({ inviteCode: code }),
     onSuccess: (res) => {
-      const { society, user: updatedUser } = res.data;
-      toast.success('Joined society successfully!');
-      // Update local storage and store with real data from backend
-      updateUser(updatedUser);
-      setSociety(society._id, society.name, society.inviteCode);
-      navigate(`/dashboard/resident`);
+      const data = res.data.data || res.data;
+      const { society, user: updatedUser } = data;
+
+      if (society) {
+        setSociety(society._id, society.name, society.inviteCode);
+        toast.success('Joined society successfully!');
+      }
+
+      if (updatedUser) {
+        updateUser({ ...user, ...updatedUser });
+        navigate(`/dashboard/${updatedUser.role || 'resident'}`);
+      } else {
+        updateUser({ ...user, role: 'resident' });
+        navigate(`/dashboard/resident`);
+      }
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || 'Invalid invite code or server error');

@@ -51,7 +51,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     // Prevent redirecting to /dashboard/pending
-    const target = user.role === 'pending' ? '/society-setup' : `/dashboard/${user.role}`;
+    const target = user.role === 'pending' || !user.role ? '/society-setup' : `/dashboard/${user.role}`;
     return <Navigate to={target} replace />;
   }
 

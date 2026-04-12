@@ -45,6 +45,7 @@ const navItems = {
   ],
   admin: [
     { label: 'Dashboard', path: '/dashboard/admin', icon: LayoutDashboard },
+    { label: 'Society Feed', path: '/feed', icon: Bell },
     { label: 'Task Management', path: '/tasks', icon: ListTodo },
     { label: 'Members', path: '/members', icon: Users },
     { label: 'Staff Directory', path: '/staff', icon: Shield },

@@ -83,4 +83,9 @@ export const statisticsAPI = {
   getGuardStats: () => api.get('/stats/guard'),
 };
 
+export const meetingAPI = {
+  getAll: () => api.get('/meetings'),
+  create: (data) => api.post('/meetings', data),
+};
+
 export default api;

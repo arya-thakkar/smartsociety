@@ -50,15 +50,18 @@ export default function Logs() {
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to sync log')
   });
 
+  const safeDate = (dateStr) => {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+
   const filteredLogs = logs.filter(log => {
-      const content = `${log.note} ${log.visitor?.name || ''} ${log.verifiedBy?.name || ''}`.toLowerCase();
+      const content = `${log.note || ''} ${log.visitor?.name || ''} ${log.verifiedBy?.name || ''} ${log.action || ''}`.toLowerCase();
       return content.includes(filter.toLowerCase());
   });
 
   const handleManualEntry = (e) => {
     e.preventDefault();
-    // For manual entry, we can construct a sentence for the AI to parse, or send structured data
-    // Let's send a structured note to the AI parser
     const text = `Entry for ${newEntry.name} in unit ${newEntry.unit} with vehicle ${newEntry.vehicle || 'NA'}`;
     logMutation.mutate({ text });
   };
@@ -160,16 +163,16 @@ export default function Logs() {
                   {filteredLogs.map((log) => (
                      <TableRow key={log._id} className="hover:bg-muted/30 transition-colors h-20">
                         <TableCell>
-                           <p className="font-black text-sm">{format(new Date(log.createdAt), 'hh:mm a')}</p>
-                           <p className="text-[10px] text-muted-foreground uppercase font-bold">{format(new Date(log.createdAt), 'MMM dd')}</p>
+                           <p className="font-black text-sm">{format(safeDate(log.createdAt), 'hh:mm a')}</p>
+                           <p className="text-[10px] text-muted-foreground uppercase font-bold">{format(safeDate(log.createdAt), 'MMM dd')}</p>
                         </TableCell>
                         <TableCell>
                            <div className="flex items-center gap-3">
                               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-xs uppercase">
-                                 {log.action?.charAt(0)}
+                                 {(log.action || 'V')?.charAt(0)}
                               </div>
                               <div>
-                                 <p className="font-bold text-sm leading-tight line-clamp-2">{log.note}</p>
+                                 <p className="font-bold text-sm leading-tight line-clamp-2">{log.note || 'Gate Registry Entry'}</p>
                                  <p className="text-[10px] text-muted-foreground uppercase">Verified by {log.verifiedBy?.name || 'Guard'}</p>
                               </div>
                            </div>

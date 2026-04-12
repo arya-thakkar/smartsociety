@@ -25,8 +25,13 @@ export default function Members() {
   const { data: members, isLoading } = useQuery({
     queryKey: ['society-members'],
     queryFn: async () => {
-      const res = await memberAPI.getAll();
-      return res.data.members;
+      try {
+        const res = await memberAPI.getAll();
+        return res.data.members || res.data.data?.members || [];
+      } catch (err) {
+        console.error("Members API failed", err);
+        return [];
+      }
     }
   });
 

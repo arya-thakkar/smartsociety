@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { announcementAPI } from '../api';
 
+import { MOCK_ANNOUNCEMENTS } from '../data/mockData';
+
 export default function Announcements() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
@@ -20,18 +22,16 @@ export default function Announcements() {
 
   const isAdmin = user?.role === 'admin';
 
-  // Fetch Announcements
-  const { data: notices, isLoading } = useQuery({
+  // REAL API FETCH: Get live announcements
+  const { data: realNoticesRes, isLoading } = useQuery({
     queryKey: ['announcements'],
     queryFn: async () => {
       try {
         const res = await announcementAPI.getAll();
-        return res.data;
+        return res.data.announcements || [];
       } catch (err) {
-        return [
-          { _id: '1', title: 'Water Tank Cleaning', content: 'Scheduled for Sunday from 10 AM to 2 PM.', priority: 'High', createdAt: new Date().toISOString() },
-          { _id: '2', title: 'Annual General Meeting', content: 'Our AGM will be held on Oct 30th at the Clubhouse.', priority: 'Normal', createdAt: new Date(Date.now() - 86400000).toISOString() },
-        ];
+        console.error("Announcements API failed, falling back to mock data", err);
+        return [];
       }
     }
   });
@@ -46,12 +46,34 @@ export default function Announcements() {
     }
   });
 
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6 max-w-5xl mx-auto">
+        <div className="h-10 w-64 bg-muted animate-pulse rounded-lg" />
+        {[1, 2, 3].map(i => (
+          <Card key={i} className="h-32 bg-muted animate-pulse border-none rounded-2xl" />
+        ))}
+      </div>
+    );
+  }
+
+  // Combine Real + Mock
+  const safeDate = (dateStr) => {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+
+  const notices = [
+    ...(realNoticesRes || []),
+    ...MOCK_ANNOUNCEMENTS
+  ].sort((a, b) => safeDate(b.createdAt) - safeDate(a.createdAt));
+
   const handlePost = (e) => {
     e.preventDefault();
     createMutation.mutate(newNotice);
   };
 
-  const filteredNotices = notices?.filter(n => 
+  const filteredNotices = notices.filter(n => 
     n.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
     n.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -132,7 +154,7 @@ export default function Announcements() {
                     <h3 className="font-bold text-xl">{item.title}</h3>
                     {item.priority === 'High' && <Badge variant="destructive" className="animate-pulse">URGENT</Badge>}
                     <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider">
-                      {new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      {safeDate(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </Badge>
                   </div>
                   <p className="text-foreground/80 leading-relaxed max-w-3xl whitespace-pre-wrap">{item.content}</p>

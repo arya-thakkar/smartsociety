@@ -126,3 +126,52 @@ export const MOCK_COMPLAINTS = [
     createdAt: new Date(Date.now() - 172800000).toISOString()
   }
 ];
+
+export const MOCK_ANNOUNCEMENTS = [
+  {
+    _id: 'a1',
+    title: 'Water Tank Cleaning',
+    content: 'The overhead water tanks for block A and B will be cleaned this Sunday. Water supply will be suspended from 10 AM to 4 PM.',
+    priority: 'High',
+    createdAt: new Date(Date.now() - 3600000).toISOString()
+  },
+  {
+    _id: 'a2',
+    title: 'Society Festive Meeting',
+    content: 'We are organizing a meeting to discuss the upcoming Diwali celebrations in the central park. All residents are invited.',
+    priority: 'Normal',
+    createdAt: new Date(Date.now() - 86400000).toISOString()
+  },
+  {
+    _id: 'a3',
+    title: 'Lift Maintenance',
+    content: 'The lift in C block will be under routine maintenance on Tuesday between 2 PM and 3 PM.',
+    priority: 'Low',
+    createdAt: new Date(Date.now() - 172800000).toISOString()
+  }
+];
+
+export const MOCK_MEETINGS = [
+  {
+    _id: 'm1',
+    title: 'Q4 Budget & Solar Project',
+    description: 'We will review the final estimates for the rooftop solar installation and finalize the Q4 maintenance budget.',
+    date: new Date(Date.now() + 259200000).toISOString().split('T')[0], // 3 days from now
+    time: '07:30 PM',
+    location: 'Clubhouse Hall A',
+    attendees: 42,
+    online: true,
+    status: 'Upcoming'
+  },
+  {
+    _id: 'm2',
+    title: 'Security Staff Review',
+    description: 'Monthly performance review of the security team and night patrol frequency.',
+    date: new Date(Date.now() - 172800000).toISOString().split('T')[0], // 2 days ago
+    time: '08:00 PM',
+    location: 'Committee Room 2',
+    attendees: 12,
+    online: false,
+    status: 'Completed'
+  }
+];
