@@ -1,0 +1,7 @@
+# Exclude the backend folder from Vercel deployment
+smart-society/
+node_modules/
+.env
+.git
+README.md
+STYLE_AND_THEME.md
