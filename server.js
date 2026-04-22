@@ -46,9 +46,5 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`\n🏢  Smart Society API v2.1 on port ${PORT}`);
-  console.log(`🤖  Gemini:      ${process.env.GEMINI_API_KEY        ? "✅" : "❌ not set"}`);
-  console.log(`🤖  Claude:      ${process.env.CLAUDE_API_KEY        ? "✅" : "❌ not set"}`);
-  console.log(`🎙️   AssemblyAI:  ${process.env.ASSEMBLYAI_API_KEY    ? "✅" : "❌ not set"}`);
-  console.log(`☁️   Cloudinary:  ${process.env.CLOUDINARY_CLOUD_NAME ? "✅" : "❌ not set"}`);
-  console.log(`📞  Agora:       ${process.env.AGORA_APP_ID           ? "✅" : "⚠️  mock mode"}\n`);
+
 });
