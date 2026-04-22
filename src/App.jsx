@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { useAuthStore } from './store/authStore';
 
-// Pages & Dashboards
+
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ResidentDashboard from './pages/dashboards/ResidentDashboard';
@@ -11,7 +11,7 @@ import GuardDashboard from './pages/dashboards/GuardDashboard';
 import AdminDashboard from './pages/dashboards/AdminDashboard';
 import Profile from './pages/Profile';
 
-// Layout
+
 import MainLayout from './components/layout/MainLayout';
 
 import SocietySetup from './pages/SocietySetup';
