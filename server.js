@@ -21,7 +21,8 @@ app.use("/api/auth",          require("./routes/auth.routes"));
 app.use("/api/society",       require("./routes/society.routes"));
 app.use("/api/members",       require("./routes/member.routes"));
 app.use("/api/staff",         require("./routes/staff.routes"));
-app.use("/api/visitor",       require("./routes/visitor.routes"));
+app.use("/api/visitors",      require("./routes/visitor.routes"));       // plural: /api/visitors (matches frontend)
+app.use("/api/visitor",       require("./routes/visitor.routes"));       // backward compat: /api/visitor
 app.use("/api/logs",          require("./routes/log.routes"));
 app.use("/api/amenities",     require("./routes/amenity.routes"));
 app.use("/api/bookings",      require("./routes/booking.routes"));
@@ -30,6 +31,9 @@ app.use("/api/complaints",    require("./routes/complaint.routes"));
 app.use("/api/tasks",         require("./routes/task.routes"));
 app.use("/api/meetings",      require("./routes/meeting.routes"));
 app.use("/api/finance",       require("./routes/finance.routes"));
+app.use("/api/posts",         require("./routes/post.routes"));          // Social feed
+app.use("/api/invites",       require("./routes/guestInvite.routes"));   // Pre-approved guest invites
+app.use("/api/stats",         require("./routes/stats.routes"));         // Dashboard statistics
 
 // ── Health ──────────────────────────────────────────────────────
 app.get("/", (req, res) => res.json({ status: "ok", message: "Smart Society API v2.1 🏢" }));

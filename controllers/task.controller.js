@@ -18,7 +18,8 @@ const getTasks = async (req, res, next) => {
 
 const updateTask = async (req, res, next) => {
   try {
-    const task = await taskService.updateTask(req.params.id, req.user.society, req.body);
+    // Pass userId so the task service can record who paid for financial tasks
+    const task = await taskService.updateTask(req.params.id, req.user.society, req.body, req.user._id);
     res.json({ success: true, task });
   } catch (err) { next(err); }
 };

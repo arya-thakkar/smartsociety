@@ -1,6 +1,7 @@
 // services/task.service.js
 
 const Task = require("../models/task.model");
+const Transaction = require("../models/transaction.model");
 const aiService = require("./ai.service");
 
 const createTask = async (data, userId, societyId) => {
@@ -32,14 +33,30 @@ const getTasks = async (societyId, userRole) => {
   return tasks.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 };
 
-const updateTask = async (id, societyId, updates) => {
+const updateTask = async (id, societyId, updates, userId = null) => {
   if (updates.status === "completed") updates.completedAt = new Date();
+
   const task = await Task.findOneAndUpdate(
     { _id: id, society: societyId },
     updates,
     { new: true }
   );
   if (!task) throw { status: 404, message: "Task not found" };
+
+  // If a financial task is marked as "Paid", generate a credit Transaction
+  if (task.type === "financial" && updates.status === "Paid" && task.amount > 0) {
+    await Transaction.create({
+      society: societyId,
+      user: userId || task.assignedTo,
+      task: task._id,
+      type: "credit",
+      category: "maintenance",
+      amount: task.amount,
+      description: `Payment for: ${task.title}`,
+      date: new Date(),
+    });
+  }
+
   return task;
 };
 
